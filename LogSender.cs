@@ -7,19 +7,34 @@ using UnityEngine;
 public class LogSender
 {
     private static readonly HttpClient httpClient = new HttpClient();
-
-
-    public static async Task SendLog<T>(string apiURL, string sheetURL, T dataClass) where T : class
+    /// <summary>
+    /// スプシのURLを含めたラッパークラス
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    private class SendLogClass<T>
     {
-        // var sendDataClass = new SendLogClass<T>(sheetURL, dataClass);
-        string json = JsonUtility.ToJson(dataClass);
+        public SendLogClass(string sheetURL, T datas)
+        {
+            this.sheetURL = sheetURL;
+            this.datas = datas;
+        }
 
-        Debug.Log(json);
+        public string sheetURL;
+        public T datas;
+    }
+
+    public static async Task SendLog<T>(string gasURL,
+                                        string sheetURL,
+                                        T dataClass)
+    {
+        var sendDataClass = new SendLogClass<T>(sheetURL, dataClass);
+        string json = JsonUtility.ToJson(sendDataClass);
+
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         try
         {
-            HttpResponseMessage response = await httpClient.PostAsync(apiURL, content);
+            HttpResponseMessage response = await httpClient.PostAsync(gasURL, content);
             if (response.IsSuccessStatusCode)
             {
                 Debug.Log("ログ送信成功");
@@ -34,16 +49,4 @@ public class LogSender
             Debug.LogError("通信エラー: " + e.Message);
         }
     }
-}
-
-public class SendLogClass<T> where T : class
-{
-    public SendLogClass(string sheetURL, T a)
-    {
-        this.sheetURL = sheetURL;
-        json = JsonUtility.ToJson(a);
-    }
-    public string sheetURL;
-
-    public string json;
 }

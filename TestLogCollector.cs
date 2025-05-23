@@ -20,6 +20,7 @@ public class TestLogCollector : MonoBehaviour
     }
 }
 
+[System.Serializable]
 public class TestLogClass
 {
     public string name;
