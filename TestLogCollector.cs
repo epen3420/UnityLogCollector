@@ -16,7 +16,7 @@ public class TestLogCollector : MonoBehaviour
             hitPoint = 0
         };
 
-        await LogSender.SendLog(apiURL, sheetURL, logClass);
+        await LogSender.SendLog2(apiURL, sheetURL, logClass);
     }
 }
 
