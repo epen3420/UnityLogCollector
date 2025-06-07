@@ -7,16 +7,25 @@ public class TestLogCollector : MonoBehaviour
     [SerializeField]
     private string sheetURL;
 
-
-    public async void Send()
+    private struct testStruct
+    {
+        public string character;
+        public int hp;
+    }
+    public void Send()
     {
         var logClass = new TestLogClass()
         {
             name = "epen",
-            hitPoint = 0
+            hitPoint = 1,
+        };
+        var test = new testStruct
+        {
+            character = "ccc",
+            hp = 5
         };
 
-        await LogSender.SendLog2(apiURL, sheetURL, logClass);
+        new LogSender(apiURL, sheetURL);
     }
 }
 
@@ -25,4 +34,5 @@ public class TestLogClass
 {
     public string name;
     public int hitPoint;
+    public float clearTime;
 }

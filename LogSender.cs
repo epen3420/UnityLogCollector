@@ -1,72 +1,85 @@
-using System;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
 public class LogSender
 {
-    private static readonly HttpClient httpClient = new HttpClient();
-    /// <summary>
-    /// スプシのURLを含めたラッパークラス
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    private class SendLogClass<T>
-    {
-        public SendLogClass(string sheetURL, T datas)
-        {
-            this.sheetURL = sheetURL;
-            this.datas = datas;
-        }
+    private string gasURL;
+    private WWWForm form = new WWWForm();
+    private List<string> keysOrder = new List<string>();
 
-        public string sheetURL;
-        public T datas;
+
+    public LogSender(string gasURL, string sheetURL)
+    {
+        this.gasURL = gasURL;
+        form.AddField("sheetURL", sheetURL);
     }
 
-    public static async Task SendLog<T>(string gasURL,
-                                        string sheetURL,
-                                        T dataClass)
+    public void SendLog<T>(T data, string sheetName = "null")
     {
-        var sendDataClass = new SendLogClass<T>(sheetURL, dataClass);
-        string json = JsonUtility.ToJson(sendDataClass);
-
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        try
+        if (data == null)
         {
-            HttpResponseMessage response = await httpClient.PostAsync(gasURL, content);
-            if (response.IsSuccessStatusCode)
-            {
-                Debug.Log("ログ送信成功");
-            }
-            else
-            {
-                Debug.LogError("ログ送信失敗: " + response.StatusCode);
-            }
+            Debug.LogError($"Can't send log. Because dataClass is null");
+            return;
         }
-        catch (Exception e)
-        {
-            Debug.LogError("通信エラー: " + e.Message);
-        }
-    }
 
-    public static async Task SendLog2<T>(string gasURL,
-                                        string sheetURL,
-                                        T dataClass)
-    {
-        var sendDataClass = new SendLogClass<T>(sheetURL, dataClass);
-        string json = JsonUtility.ToJson(sendDataClass);
+        var dataType = typeof(T);
+        var dataFields = dataType.GetFields();
 
         WWWForm form = new WWWForm();
-        form.AddField("sheetURL", sheetURL);
-        form.AddField("name", "epen");
-        form.AddField("hp", "0");
+        form.AddField("sheetName", sheetName);
+
+        if (dataFields.Length == 0)
+        {
+            // フィールドがない → int や string など
+            Debug.Log($"{dataType.Name} is invalid data. Please pass class or struct as an parameter ");
+            return;
+        }
+
+        var keys = dataFields.Select(f => f.Name).ToArray();
+        form.AddField("keys", string.Join(',', keys));
+
+        foreach (var field in dataFields)
+        {
+            var fieldValue = field.GetValue(data);
+            form.AddField(field.Name, fieldValue?.ToString() ?? "null");
+            Debug.Log($"[{field.Name}] {fieldValue}");
+        }
+
+        PostGas(form);
+    }
+
+    public void AddForm<T>(string key, T value)
+    {
+        keysOrder.Add(key);
+        form.AddField(key, value.ToString());
+    }
+
+    public void SendLog(string sheetName = "null")
+    {
+        if (form.data.Length <= 0)
+        {
+            Debug.LogError($"Can't send log. Because form is null");
+            return;
+        }
+
+        form.AddField("sheetName", sheetName);
+
+        // 配列を一つのStringとしてformに設定
+        form.AddField("keys", string.Join(',', keysOrder));
+
+        PostGas(form);
+    }
+
+    private async void PostGas(WWWForm form)
+    {
         using UnityWebRequest www = UnityWebRequest.Post(gasURL, form);
         await www.SendWebRequest();
+
         if (www.result != UnityWebRequest.Result.Success)
-            Debug.LogError("ログ送信失敗: " + www.error);
+            Debug.LogError($"Failed to send log: " + www.error);
         else
-            Debug.Log("ログ送信成功: " + www.downloadHandler.text);
+            Debug.Log($"Success to send log: " + www.downloadHandler.text);
     }
 }
