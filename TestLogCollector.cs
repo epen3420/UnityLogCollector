@@ -1,18 +1,21 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class TestLogCollector : MonoBehaviour
 {
-    [SerializeField]
-    private string apiURL;
-    [SerializeField]
-    private string sheetURL;
-
     private struct testStruct
     {
         public string character;
         public int hp;
     }
-    public void Send()
+
+    private void Start()
+    {
+        Send();
+    }
+
+    public async Task Send()
     {
         var logClass = new TestLogClass()
         {
@@ -25,7 +28,13 @@ public class TestLogCollector : MonoBehaviour
             hp = 5
         };
 
-        new LogSender(apiURL, sheetURL);
+        var dict = new Dictionary<string, object>();
+        dict.Add("name", "epen");
+        dict.Add("age", 2);
+
+        await LogSender.SendLog(dict); // Dictionary型の物を送る
+        await LogSender.SendLog(test); // 適当なシートにデータを送る
+        await LogSender.SendLog(logClass); // シート2にデータを送る（なければシートを作る）
     }
 }
 

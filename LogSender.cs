@@ -1,85 +1,124 @@
+using Prefs = UnityEditor.EditorPrefs;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class LogSender
+public static class LogSender
 {
-    private string gasURL;
-    private WWWForm form = new WWWForm();
-    private List<string> keysOrder = new List<string>();
-
-
-    public LogSender(string gasURL, string sheetURL)
-    {
-        this.gasURL = gasURL;
-        form.AddField("sheetURL", sheetURL);
-    }
-
-    public void SendLog<T>(T data, string sheetName = "null")
+    /// <summary>
+    /// ジェネリック型 (クラスや構造体) をログとして送信します。
+    /// </summary>
+    public static async Task SendLog<T>(T data, string sheetName = "null")
     {
         if (data == null)
         {
-            Debug.LogError($"Can't send log. Because dataClass is null");
+            Debug.LogError("Can't send log. Because data is null");
             return;
         }
 
         var dataType = typeof(T);
-        var dataFields = dataType.GetFields();
+        var dataProperties = dataType.GetFields();
+
+        if (dataProperties.Length == 0)
+        {
+            return;
+        }
 
         WWWForm form = new WWWForm();
-        form.AddField("sheetName", sheetName);
+        InitForm(form, sheetName);
 
-        if (dataFields.Length == 0)
-        {
-            // フィールドがない → int や string など
-            Debug.Log($"{dataType.Name} is invalid data. Please pass class or struct as an parameter ");
-            return;
-        }
-
-        var keys = dataFields.Select(f => f.Name).ToArray();
+        // キー (プロパティ名) のリストを作成
+        var keys = dataProperties.Select(prop => prop.Name).ToArray();
         form.AddField("keys", string.Join(',', keys));
 
-        foreach (var field in dataFields)
+        string logStr = "";
+        // 各プロパティの値を追加
+        foreach (var prop in dataProperties)
         {
-            var fieldValue = field.GetValue(data);
-            form.AddField(field.Name, fieldValue?.ToString() ?? "null");
-            Debug.Log($"[{field.Name}] {fieldValue}");
+            var propValue = prop.GetValue(data);
+            form.AddField(prop.Name, propValue?.ToString() ?? "null");
+            logStr += $"[{prop.Name}] {propValue}, ";
         }
+        logStr = logStr.Remove(logStr.Length - 2, 2);
+        Debug.Log(logStr);
 
-        PostGas(form);
-    }
-
-    public void AddForm<T>(string key, T value)
-    {
-        keysOrder.Add(key);
-        form.AddField(key, value.ToString());
-    }
-
-    public void SendLog(string sheetName = "null")
-    {
-        if (form.data.Length <= 0)
+        try
         {
-            Debug.LogError($"Can't send log. Because form is null");
+            await PostGas(form);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Log send failed with exception: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Dictionary<string, object> のデータをログとして送信します。
+    /// </summary>
+    public static async Task SendLog(Dictionary<string, object> data, string sheetName = "null")
+    {
+        if (data == null || data.Count == 0)
+        {
+            Debug.LogError("Can't send log. Because data dictionary is null or empty");
             return;
         }
 
-        form.AddField("sheetName", sheetName);
+        WWWForm form = new WWWForm();
+        InitForm(form, sheetName);
 
-        // 配列を一つのStringとしてformに設定
-        form.AddField("keys", string.Join(',', keysOrder));
+        var keys = data.Keys.ToArray();
+        form.AddField("keys", string.Join(',', keys));
 
-        PostGas(form);
+        string logStr = "";
+        foreach (var pair in data)
+        {
+            form.AddField(pair.Key, pair.Value?.ToString() ?? "null");
+            logStr += $"[{pair.Key}] {pair.Value}, ";
+        }
+        logStr = logStr.Remove(logStr.Length - 2, 2);
+        Debug.Log(logStr);
+
+        try
+        {
+            await PostGas(form);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Log send failed with exception: {e.Message}");
+        }
     }
 
-    private async void PostGas(WWWForm form)
+
+    private static void InitForm(WWWForm form, string sheetName)
     {
+        string sheetURL = Prefs.GetString("SHEET_URL");
+
+        form.AddField("sheetURL", sheetURL);
+        form.AddField("sheetName", sheetName);
+    }
+
+    private static async Task PostGas(WWWForm form)
+    {
+        string gasURL = Prefs.GetString("GAS_URL");
+
         using UnityWebRequest www = UnityWebRequest.Post(gasURL, form);
-        await www.SendWebRequest();
+        var operation = www.SendWebRequest();
+
+        while (!operation.isDone)
+        {
+            await Task.Yield();
+        }
 
         if (www.result != UnityWebRequest.Result.Success)
-            Debug.LogError($"Failed to send log: " + www.error);
+        {
+            // 失敗時は例外を投げて呼び出し元に知らせる
+            throw new System.Exception($"Failed to send log: {www.error} (Response: {www.downloadHandler.text})");
+        }
         else
-            Debug.Log($"Success to send log: " + www.downloadHandler.text);
+        {
+            Debug.Log($"Success to send log: {www.downloadHandler.text}");
+        }
     }
 }
