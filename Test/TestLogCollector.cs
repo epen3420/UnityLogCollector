@@ -10,9 +10,9 @@ public class TestLogCollector : MonoBehaviour
         public int hp;
     }
 
-    private void Start()
+    private async void Start()
     {
-        Send();
+        await Send();
     }
 
     public async Task Send()
@@ -32,9 +32,9 @@ public class TestLogCollector : MonoBehaviour
         dict.Add("name", "epen");
         dict.Add("age", 2);
 
-        await LogSender.SendLog(dict); // Dictionary型の物を送る
-        await LogSender.SendLog(test); // 適当なシートにデータを送る
-        await LogSender.SendLog(logClass); // シート2にデータを送る（なければシートを作る）
+        await LogSender.Instance.SendLog(dict); // Dictionary型の物を送る
+        await LogSender.Instance.SendLog(test); // 適当なシートにデータを送る
+        await LogSender.Instance.SendLog(logClass); // シート2にデータを送る（なければシートを作る）
     }
 }
 
