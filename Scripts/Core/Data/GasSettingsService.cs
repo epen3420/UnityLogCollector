@@ -17,19 +17,19 @@ namespace UniGasClient.Editor
             GasSettings settings = Resources.Load<GasSettings>("GasSettings");
             if (settings == null)
             {
-                Debug.LogError("GetSettings can not find");
                 return null;
             }
 
             return settings;
         }
 
-        public static void CreateSettings()
+        public static GasSettings CreateSettings()
         {
             string libraryRootPath = ResolveLibraryRootPath();
             if (string.IsNullOrEmpty(libraryRootPath))
             {
                 Debug.LogError("Failed to create GasSettings: Library root path could not be resolved.");
+                return null;
             }
 
             string resourcesFolderPath = Path.Combine(libraryRootPath, RESOURCES_DIR_NAME);
@@ -43,6 +43,8 @@ namespace UniGasClient.Editor
             AssetDatabase.CreateAsset(settings, assetPath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            return settings;
         }
 
         /// <summary>

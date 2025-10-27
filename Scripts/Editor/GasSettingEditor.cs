@@ -25,7 +25,7 @@ namespace UnityLogSender.Editor
 
             if (settings == null)
             {
-                GasSettingsService.CreateSettings();
+                settings = GasSettingsService.CreateSettings();
             }
 
             newDeployId = settings.DeployId;
