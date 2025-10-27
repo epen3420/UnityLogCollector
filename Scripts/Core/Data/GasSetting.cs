@@ -17,10 +17,10 @@ namespace UniGasClient.Data
         public string GasUrl => $"https://script.google.com/macros/s/{deployId}/exec";
         public string SheetId => sheetId;
 
-        public void Init(string authToken, string deployId, string sheetId)
+        public void Init(string deployId, string authToken, string sheetId)
         {
-            this.authToken = authToken;
             this.deployId = deployId;
+            this.authToken = authToken;
             this.sheetId = sheetId;
         }
     }

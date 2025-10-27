@@ -2,6 +2,7 @@ using UniGasClient.Data;
 using UniGasClient.Editor;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace UnityLogSender.Editor
 {
@@ -14,7 +15,9 @@ namespace UnityLogSender.Editor
         }
 
         private GasSettings settings;
-
+        private string newDeployId;
+        private string newAuthToken;
+        private string newSheetId;
 
         private void OnEnable()
         {
@@ -24,6 +27,10 @@ namespace UnityLogSender.Editor
             {
                 GasSettingsService.CreateSettings();
             }
+
+            newDeployId = settings.DeployId;
+            newAuthToken = settings.AuthToken;
+            newSheetId = settings.SheetId;
         }
 
         private void OnGUI()
@@ -42,14 +49,14 @@ namespace UnityLogSender.Editor
 
             EditorGUI.BeginChangeCheck();
 
-            GUILayout.Label("GAS URL (Deploy ID)");
-            string newDeployId = GUILayout.TextField(settings.DeployId);
+            GUILayout.Label("Deploy ID");
+            newDeployId = GUILayout.TextField(newDeployId);
 
             GUILayout.Label("Auth Token");
-            string newAuthToken = GUILayout.TextField(settings.AuthToken);
+            newAuthToken = GUILayout.TextField(newAuthToken);
 
             GUILayout.Label("Sheet ID");
-            string newSheetId = GUILayout.TextField(settings.SheetId);
+            newSheetId = GUILayout.TextField(newSheetId);
 
 
             if (EditorGUI.EndChangeCheck())
